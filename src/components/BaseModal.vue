@@ -1,6 +1,6 @@
 <template>
     <Transition name="modal-outer">
-        <div v-show="modalActive" @click="$emit('close-modal')"
+        <div v-show="modalActive"
             class="absolute w-full bg-black bg-opacity-50 h-screen top-0 left-0 flex justify-center px-8">
             <Transition name="modal-inner">
                 <div v-if="modalActive"

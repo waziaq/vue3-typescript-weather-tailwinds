@@ -1,6 +1,3 @@
-<script setup lang="ts">
-</script>
-
 <template>
   <div class="container">
     <div class="py-20">
@@ -26,3 +23,6 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+</script>
