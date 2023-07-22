@@ -1,9 +1,14 @@
 <template>
     <header class="sticky top-0">
-        <nav class="container py-4 relative">
+        <nav class="container py-4 relative" :class="{ 'bg-weather-primary/80 shadow-lg' : scrollPosition > 10 }">
             <p class="gap-2 flex justify-center items-center text-sm text-white">
                 <i class="fa-solid fa-location-arrow text-lg"></i>
-                <span>Melaka, Malaysia</span>
+                <!-- Show places saved if sorting is 0. -->
+                <template v-for="(savedLocation, indexSavedLocation) in savedLocations" :key="indexSavedLocation">
+                    <span v-if="savedLocation.sorting === 0">
+                        {{ savedLocation.place }}
+                    </span>
+                </template>
             </p>
             <p class="absolute top-1/2 right-4 -translate-y-1/2 text-xs text-white space-x-4">
                 <i @click="toggleModalSearchResult" class="fa-solid fa-pen-to-square cursor-pointer"></i>
@@ -65,8 +70,7 @@ import BaseModal from './BaseModal.vue';
 
 interface Location {
     id: string;
-    state: string;
-    city: string;
+    place: string;
     coords: {
         lat: number;
         lng: number;
@@ -81,29 +85,51 @@ const modalSearchResult = ref<boolean>(false);
 const modalActive = ref<boolean>(false);
 const mapBoxSearchResult = ref<any[]>([]);
 const searchError = ref<boolean>(false);
+const scrollPosition = ref<number>(0);
 
 onMounted(() => {
     getLocationGeolocation();
+
+    window.addEventListener('scroll', updateScrollPosition);
 })
 
+/**
+ * Toggles the modalActive value between true and false.
+ */
 const toggleModal = () => {
-    modalActive.value = !modalActive.value;
-}
+  // Negate the current value of modalActive
+  modalActive.value = !modalActive.value;
+};
+/**
+ * Toggles the visibility of the search result modal.
+ */
 const toggleModalSearchResult = () => {
-    modalSearchResult.value = !modalSearchResult.value;
+    // Get the current value of the modalSearchResult
+    const currentValue = modalSearchResult.value;
+
+    // Toggle the value of modalSearchResult
+    modalSearchResult.value = !currentValue;
 }
+/**
+ * Retrieves search results from the Mapbox API based on a given search query.
+ */
 const getSearchResult = async () => {
     if (searchQuery.value !== '') {
-        const result = await axios.get(`https://api.mapbox.com/geocoding/v5/mapbox.places/${searchQuery.value}.json?access_token=${mapBoxApiKey}`);
+        const response = await axios.get(`https://api.mapbox.com/geocoding/v5/mapbox.places/${searchQuery.value}.json?access_token=${mapBoxApiKey}`);
 
-        mapBoxSearchResult.value = result.data.features;
-        return;
+        mapBoxSearchResult.value = response.data.features;
     }
 
     mapBoxSearchResult.value = [];
 };
+/**
+ * Resets the search query and map box search result.
+ */
 const resetSearchQuery = () => {
+    // Reset the search query value
     searchQuery.value = '';
+
+    // Clear the map box search result
     mapBoxSearchResult.value = [];
 };
 /**
@@ -115,19 +141,15 @@ const resetSearchQuery = () => {
  */
 const addCity = (placeName: any, latValue: number, lngValue: number) => {
     try {
-        // Split the placeName into city and state.
-        const [city, state] = placeName.split(",") || [];
-
         // Create a location object with the city, state, coordinates, and sorting value.
         const locationObject = {
-            id: uid(),
-            state: state.replaceAll(' ', '') || '',
-            city: city.replaceAll(' ', ''),
-            coords: {
+            id: uid(), // Generate a unique id for the location
+            place: placeName, // Set the name of the place
+            coords: { // Set the coordinates of the place
                 lat: latValue,
                 lng: lngValue,
             },
-            sorting: 1
+            sorting: 1 // Set a sorting value for ordering the locations
         }
 
         // Before saving the location, check if it already exists
@@ -166,45 +188,70 @@ const addCity = (placeName: any, latValue: number, lngValue: number) => {
  * and saves it to the local storage.
  */
 const getLocationGeolocation = () => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-            // Retrieve the latitude and longitude
-            const { latitude, longitude } = position.coords;
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      // Retrieve the latitude and longitude
+      const { latitude, longitude } = position.coords;
 
-            // Create a location object with the latitude, longitude, and default values
-            const locationObject = {
-                id: uid(),
-                state: '',
-                city: '',
-                coords: {
-                    lat: latitude,
-                    lng: longitude,
-                },
-                sorting: 0
-            }
+      /**
+       * Fetches country cities using the Mapbox Geocoding API.
+       * @returns {Promise<Array<Object>>} - The array of country cities.
+       */
+      const getCountryCities = async () => {
+        const result = await axios.get(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?types=place&access_token=${mapBoxApiKey}`
+        );
+        return result.data.features;
+      };
 
-            // Before saving the location, check if it already exists
-            if (localStorage.getItem("savedLocation")) {
-                savedLocations.value = JSON.parse(localStorage.getItem("savedLocation")!);
-            }
+      const countryCities = await getCountryCities();
 
-            // Before merge check the coords is not same.
-            if (savedLocations.value.length > 0) {
-                // Find in savedLocation the location with the same coords, if any
-                const havedLocation = savedLocations.value.some((location) => location.coords.lat === latitude && location.coords.lng === longitude);
+      // Create a location object with the latitude, longitude, and default values
+      const locationObject = {
+        id: uid(),
+        place: countryCities[0].place_name,
+        coords: {
+          lat: latitude,
+          lng: longitude,
+        },
+        sorting: 0,
+      };
 
-                if (!havedLocation) {
-                    savedLocations.value.push(locationObject);
-                }
-            } else {
-                // Merge savedLocation with locationObject
-                savedLocations.value.push(locationObject);
-            }
+      // Before saving the location, check if it already exists
+      if (localStorage.getItem("savedLocation")) {
+        savedLocations.value = JSON.parse(localStorage.getItem("savedLocation")!);
+      }
 
-            // Save the location object to local storage
-            localStorage.setItem("savedLocation", JSON.stringify(savedLocations.value));
-        })
-    }
+      // Before merge check the coords is not same.
+      if (savedLocations.value.length > 0) {
+        // Find in savedLocation the location with the same coords, if any
+        const havedLocation = savedLocations.value.some(
+          (location) =>
+            location.coords.lat === latitude && location.coords.lng === longitude
+        );
+
+        if (!havedLocation) {
+          savedLocations.value.push(locationObject);
+        }
+      } else {
+        // Merge savedLocation with locationObject
+        savedLocations.value.push(locationObject);
+      }
+
+      // Save the location object to local storage
+      localStorage.setItem("savedLocation", JSON.stringify(savedLocations.value));
+    });
+  }
+};
+/**
+ * Updates the scroll position value based on the current window scroll.
+ */
+const updateScrollPosition = () => {
+    // Get the current vertical scroll position of the window
+    const scrollY = window.scrollY;
+
+    // Update the scroll position value
+    scrollPosition.value = scrollY;
 }
 </script>
 
