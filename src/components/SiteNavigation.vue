@@ -1,6 +1,6 @@
 <template>
-    <header class="sticky top-0">
-        <nav class="container py-4 relative" :class="{ 'bg-weather-primary/80 shadow-lg': scrollPosition > 10 }">
+    <header class="sticky top-0" :class="{ 'bg-weather-primary/80 shadow-lg': scrollPosition > 10 }">
+        <nav class="container py-4 relative">
             <p @click="toggleModalSavedLocation" class="gap-2 flex justify-center items-center text-sm text-white cursor-pointer">
                 <i class="fa-solid fa-location-arrow text-lg"></i>
                 <!-- Show places saved if sorting is 0. -->

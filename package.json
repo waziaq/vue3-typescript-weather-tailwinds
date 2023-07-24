@@ -17,6 +17,7 @@
   "dependencies": {
     "@commitlint/cli": "^17.6.6",
     "@commitlint/config-conventional": "^17.6.6",
+    "@vueuse/head": "^1.1.26",
     "axios": "^1.4.0",
     "uid": "^2.0.2",
     "vue": "^3.3.4",

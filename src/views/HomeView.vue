@@ -17,7 +17,7 @@
           }) }}</p>
           <div class="py-4">
             <img :src="`./icon/${checkWeatherIcon(hourData.weather[0].icon)}`" alt=""
-              class="w-12 mx-auto object-cover drop-shadow">
+              class="w-12 mx-auto object-cover">
           </div>
           <p class="font-bold text-white text-sm">{{ Math.round(hourData.temp) }}&deg;C</p>
         </li>
