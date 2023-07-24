@@ -1,11 +1,11 @@
 <template>
     <header class="sticky top-0">
         <nav class="container py-4 relative" :class="{ 'bg-weather-primary/80 shadow-lg': scrollPosition > 10 }">
-            <p class="gap-2 flex justify-center items-center text-sm text-white">
+            <p @click="toggleModalSavedLocation" class="gap-2 flex justify-center items-center text-sm text-white cursor-pointer">
                 <i class="fa-solid fa-location-arrow text-lg"></i>
                 <!-- Show places saved if sorting is 0. -->
                 <template v-for="(savedLocation, indexSavedLocation) in savedLocations" :key="indexSavedLocation">
-                    <span v-if="savedLocation.sorting === 0" class="truncate w-2/3">
+                    <span v-if="savedLocation.sorting === 0" class="truncate max-w-2/3">
                         {{ savedLocation.place }}
                     </span>
                 </template>
@@ -58,6 +58,30 @@
                 </div>
             </div>
         </BaseModal>
+        <BaseModal :modal-active="modalSavedLocation" @close-modal="toggleModalSavedLocation">
+            <!-- Show all saved locations -->
+            <div class="text-black">
+                <div
+                    class="text-xl text-transparent bg-clip-text bg-gradient-to-r from-weather-secondary to-weather-primary font-bold">
+                    Saved Locations
+                    <p class="text-[50%] m-0 p-0 text-black font-light text-justify ">
+                        <!-- Explaination about listing, please click on the saved location to set default location -->
+                        This is your saved locations, please click on the saved location to set default location.
+                    </p>
+                </div>
+                <ul class="my-8 space-y-4">
+                    <li v-for="savedLocation in savedLocations" :key="savedLocation.id"
+                        @click="setDefaultLocation(savedLocation.id)"
+                        class="p-2 cursor-pointer  font-bold border-2 rounded-md"
+                        :class="savedLocation.sorting === 0 ? 'bg-weather-primary/10 text-weather-primary border-weather-primary' : 'bg-gray-500/10 text-gray-500 border-gray-500'">
+                        <p>{{ savedLocation.place }}</p>
+                        <p v-if="savedLocation.sorting === 0" class="text-[50%] uppercase m-0 px-2 py-[0.1rem] w-fit bg-green-500 rounded-full text-white font-bold text-justify">
+                            default
+                        </p>
+                    </li>
+                </ul>
+            </div>
+        </BaseModal>
     </header>
 </template>
 
@@ -86,6 +110,7 @@ const modalActive = ref<boolean>(false);
 const mapBoxSearchResult = ref<any[]>([]);
 const searchError = ref<boolean>(false);
 const scrollPosition = ref<number>(0);
+const modalSavedLocation = ref<boolean>(false);
 
 onMounted(() => {
     getLocationGeolocation();
@@ -109,6 +134,9 @@ const toggleModalSearchResult = () => {
 
     // Toggle the value of modalSearchResult
     modalSearchResult.value = !currentValue;
+}
+const toggleModalSavedLocation = () => {
+    modalSavedLocation.value = !modalSavedLocation.value;
 }
 /**
  * Retrieves search results from the Mapbox API based on a given search query.
@@ -256,6 +284,28 @@ const updateScrollPosition = () => {
 
     // Update the scroll position value
     scrollPosition.value = scrollY;
+}
+const setDefaultLocation = (id: string) => {
+    // Get local storage, if any
+    if (localStorage.getItem("savedLocation")) {
+        savedLocations.value = JSON.parse(localStorage.getItem("savedLocation")!);
+    }
+
+    // Set the current sorting 0 to 1
+    savedLocations.value.forEach((location) => {
+        if (location.sorting === 0) {
+            location.sorting = 1;
+        }
+
+        if (location.id === id) {
+            location.sorting = 0;
+        }
+    });
+
+    localStorage.setItem("savedLocation", JSON.stringify(savedLocations.value));
+
+    // Reload the page
+    window.location.reload();
 }
 </script>
 

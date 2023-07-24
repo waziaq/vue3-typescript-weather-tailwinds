@@ -9,7 +9,11 @@ export default {
             colors: {
                 "weather-primary": "#F96B01",
                 "weather-secondary": "#CF3E82"
-            }
+            },
+            maxWidth: {
+                '1/2': '50%',
+                '2/3': '66.666%',
+              }        
         },
         fontFamily: {
             roboto: ["Roboto, san-serif"]
