@@ -1,11 +1,11 @@
 <template>
     <header class="sticky top-0">
-        <nav class="container py-4 relative" :class="{ 'bg-weather-primary/80 shadow-lg' : scrollPosition > 10 }">
+        <nav class="container py-4 relative" :class="{ 'bg-weather-primary/80 shadow-lg': scrollPosition > 10 }">
             <p class="gap-2 flex justify-center items-center text-sm text-white">
                 <i class="fa-solid fa-location-arrow text-lg"></i>
                 <!-- Show places saved if sorting is 0. -->
                 <template v-for="(savedLocation, indexSavedLocation) in savedLocations" :key="indexSavedLocation">
-                    <span v-if="savedLocation.sorting === 0">
+                    <span v-if="savedLocation.sorting === 0" class="truncate w-2/3">
                         {{ savedLocation.place }}
                     </span>
                 </template>
@@ -97,8 +97,8 @@ onMounted(() => {
  * Toggles the modalActive value between true and false.
  */
 const toggleModal = () => {
-  // Negate the current value of modalActive
-  modalActive.value = !modalActive.value;
+    // Negate the current value of modalActive
+    modalActive.value = !modalActive.value;
 };
 /**
  * Toggles the visibility of the search result modal.
@@ -188,60 +188,64 @@ const addCity = (placeName: any, latValue: number, lngValue: number) => {
  * and saves it to the local storage.
  */
 const getLocationGeolocation = () => {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      // Retrieve the latitude and longitude
-      const { latitude, longitude } = position.coords;
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            // Retrieve the latitude and longitude
+            const { latitude, longitude } = position.coords;
 
-      /**
-       * Fetches country cities using the Mapbox Geocoding API.
-       * @returns {Promise<Array<Object>>} - The array of country cities.
-       */
-      const getCountryCities = async () => {
-        const result = await axios.get(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?types=place&access_token=${mapBoxApiKey}`
-        );
-        return result.data.features;
-      };
+            /**
+             * Fetches country cities using the Mapbox Geocoding API.
+             * @returns {Promise<Array<Object>>} - The array of country cities.
+             */
+            const getCountryCities = async () => {
+                const result = await axios.get(
+                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?types=place&access_token=${mapBoxApiKey}`
+                );
+                return result.data.features;
+            };
 
-      const countryCities = await getCountryCities();
+            const countryCities = await getCountryCities();
 
-      // Create a location object with the latitude, longitude, and default values
-      const locationObject = {
-        id: uid(),
-        place: countryCities[0].place_name,
-        coords: {
-          lat: latitude,
-          lng: longitude,
-        },
-        sorting: 0,
-      };
+            // Create a location object with the latitude, longitude, and default values
+            const locationObject = {
+                id: uid(),
+                place: countryCities[0].place_name,
+                coords: {
+                    lat: latitude,
+                    lng: longitude,
+                },
+                sorting: 0,
+            };
 
-      // Before saving the location, check if it already exists
-      if (localStorage.getItem("savedLocation")) {
-        savedLocations.value = JSON.parse(localStorage.getItem("savedLocation")!);
-      }
+            // Before saving the location, check if it already exists
+            if (localStorage.getItem("savedLocation")) {
+                savedLocations.value = JSON.parse(localStorage.getItem("savedLocation")!);
+            }
 
-      // Before merge check the coords is not same.
-      if (savedLocations.value.length > 0) {
-        // Find in savedLocation the location with the same coords, if any
-        const havedLocation = savedLocations.value.some(
-          (location) =>
-            location.coords.lat === latitude && location.coords.lng === longitude
-        );
+            // Before merge check the coords is not same.
+            if (savedLocations.value.length > 0) {
+                // Find in savedLocation the location with the same coords, if any
+                const havedLocation = savedLocations.value.some(
+                    (location) =>
+                        location.coords.lat === latitude && location.coords.lng === longitude
+                );
 
-        if (!havedLocation) {
-          savedLocations.value.push(locationObject);
-        }
-      } else {
-        // Merge savedLocation with locationObject
-        savedLocations.value.push(locationObject);
-      }
+                if (!havedLocation) {
+                    // Remove the location from savedLocation where sorting is 0
+                    savedLocations.value = savedLocations.value.filter(
+                        (location) => location.sorting !== 0
+                    )
+                    savedLocations.value.push(locationObject);
+                }
+            } else {
+                // Merge savedLocation with locationObject
+                savedLocations.value.push(locationObject);
+            }
 
-      // Save the location object to local storage
-      localStorage.setItem("savedLocation", JSON.stringify(savedLocations.value));
-    });
-  }
+            // Save the location object to local storage
+            localStorage.setItem("savedLocation", JSON.stringify(savedLocations.value));
+        });
+    }
 };
 /**
  * Updates the scroll position value based on the current window scroll.
